@@ -217,6 +217,44 @@ func TestDeleteOldSegments(t *testing.T) {
 	}
 }
 
+func TestRecords(t *testing.T) {
+	var dir string
+	k1 := []byte{0x01}
+	v1 := []byte{0x02}
+	k2 := []byte{0x03}
+	v2 := []byte{0x04}
+	withPfirq(t, 100, func(p *Pfirq, d string) {
+		dir = d
+		recs := 0
+		p.Records(func(key []byte, val []byte) {
+			recs++
+		})
+		if recs != 0 {
+			t.Error("should return no records when empty")
+		}
+		p.Write(k1, v1)
+		p.Write(k2, v2)
+	})
+	buf := New(dir, 100, 100, 100)
+	idx := 0
+	buf.Records(func(key []byte, val []byte) {
+		if idx == 0 {
+			if !bytes.Equal(key, k1) || !bytes.Equal(val, v1) {
+				t.Errorf("unexpected key %v, val %v", k1, v1)
+			}
+		} else if idx == 1 {
+			if !bytes.Equal(key, k2) || !bytes.Equal(val, v2) {
+				t.Errorf("unexpected key %v, val %v", k2, v2)
+			}
+		}
+		idx++
+	})
+	if idx != 2 {
+		t.Error("expected to read two records")
+	}
+
+}
+
 func totalAlloc() uint64 {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)

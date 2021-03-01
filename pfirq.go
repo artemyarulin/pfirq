@@ -144,6 +144,40 @@ func (p *Pfirq) Write(key []byte, val []byte) bool {
 	return p.writeWithHead(key, val, zeroHeadMetadata)
 }
 
+// Records reads all the saved records and calls callback for each
+// It is undefined behaviour to use it while calling Read or Write
+func (p *Pfirq) Records(cb func(key []byte, val []byte)) {
+	files, err := ioutil.ReadDir(p.dataPath)
+	if err != nil {
+		panic(err.Error()) // cannot list files in directory
+	}
+	metadata := make([]byte, 32)
+	for _, file := range files {
+		if _, err := strconv.Atoi(filepath.Base(file.Name())); err != nil {
+			continue // Non data file - ignore
+		}
+		segment, err := os.OpenFile(path.Join(p.dataPath, file.Name()), os.O_RDONLY, os.ModePerm)
+		if err != nil {
+			panic(err.Error()) // Cannot read segment file
+		}
+		reader := bufio.NewReader(segment)
+		for {
+			if _, err := reader.Read(metadata); err == io.EOF {
+				break // No more records
+			} else if err != nil {
+				panic(err.Error()) // Error reading metadata
+			}
+			recLen := int(binary.BigEndian.Uint64(metadata))
+			keyLen := int(binary.BigEndian.Uint64(metadata[offsetKeyLen:]))
+			buf := make([]byte, recLen-len(metadata))
+			if _, err := reader.Read(buf); err != nil {
+				panic(err.Error()) // Error reading record
+			}
+			cb(buf[:keyLen], buf[keyLen:])
+		}
+	}
+}
+
 // Close waits until all pending Read/Write operation complete
 // May be called multiple times
 func (p *Pfirq) Close() {
