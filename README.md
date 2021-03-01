@@ -2,8 +2,7 @@
 
 PFIRQ - **P**ersisted **FI**FO **R**ing **Q**ueue
 
-Embedded Go persisted queue storage where processed items from the head could be atomically appended to the tail for processing again. PFIRQ was designed for cases when you need to process data over and over again. It was created and currently used as a main storage for [SeeWithKids](https://SeeWithKids.com) crawler to store crawling queue
-
+Embedded Go persisted queue storage where processed items from the head could be atomically appended to the tail for processing again. PFIRQ was designed for cases when you need to process data over and over again.
 ```go
 // Where data is persisted
 storagePath := "/data"
